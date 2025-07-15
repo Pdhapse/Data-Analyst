@@ -1,0 +1,41 @@
+WITH skill_demands AS (
+    SELECT
+        skills,
+        COUNT(*) AS job_count
+    FROM
+        skills_dim
+        INNER JOIN skills_job_dim ON skills_dim.skill_id = skills_job_dim.skill_id
+        INNER JOIN job_postings_fact ON skills_job_dim.job_id = job_postings_fact.job_id
+        WHERE
+        job_postings_fact.job_title_short = 'Data Analyst' AND
+        job_work_from_home = TRUE AND
+        salary_year_avg IS NOT NULL
+        GROUP BY
+        skills
+), average_salary AS (
+    SELECT
+    ROUND(Avg(salary_year_avg)) AS avg_salary,
+    skills
+FROM
+    job_postings_fact
+    INNER JOIN skills_job_dim ON job_postings_fact.job_id = skills_job_dim.job_id
+    INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
+    WHERE
+    job_postings_fact.job_title_short = 'Data Analyst' AND
+    job_postings_fact.job_work_from_home = TRUE AND
+    salary_year_avg IS NOT NULL
+    GROUP BY 
+    skills
+)
+SELECT
+    avg_salary,
+    average_salary.skills,
+    skill_demands.job_count
+FROM
+    average_salary
+    INNER JOIN skill_demands ON average_salary.skills = skill_demands.skills 
+    WHERE
+    skill_demands.job_count > 100
+    ORDER BY
+        avg_salary DESC    
+    LIMIT 10;
